@@ -1,6 +1,6 @@
 import puppeteer from "puppeteer";
 import dotenv from "dotenv";
-dotenv.config({ path: "../../.env" });
+dotenv.config({ path: "C:/code/deportesweb-madrid-search/.env" });
 
 (async () => {
   const browser = await puppeteer.launch({ headless: false });
@@ -10,6 +10,8 @@ dotenv.config({ path: "../../.env" });
     await page.goto("https://deportesweb.madrid.es/DeportesWeb/login", {
       waitUntil: "networkidle2",
     });
+
+    console.log(process.env.EMAIL);
 
     await page.waitForSelector(
       'article.navigation-section-widget-collection-item .navigation-section-widget-collection-item-title[title="Correo y contraseña"]'
@@ -60,6 +62,51 @@ dotenv.config({ path: "../../.env" });
         )
         .click();
     });
+
+    // Click first sports center
+    await page.waitForSelector(
+      "#ContentFixedSection_uReservaEspacios_uCentrosSeleccionar_divCentros .media-list > .media.pull-left"
+    );
+    await page.click(
+      "#ContentFixedSection_uReservaEspacios_uCentrosSeleccionar_divCentros .media-list > .media.pull-left"
+    );
+
+    await page.waitForSelector(
+      "#ContentFixedSection_uReservaEspacios_uUsosSeleccionar_divUsos .media-list > .media.pull-left"
+    );
+    await page.click(
+      "#ContentFixedSection_uReservaEspacios_uUsosSeleccionar_divUsos .media-list > .media.pull-left"
+    );
+
+
+    await page.waitForSelector(
+      "#ContentFixedSection_uReservaEspacios_uFechaSeleccionar_datetimepicker .day"
+    );
+
+    await page.evaluate(() => {
+      const dateElements = Array.from(
+        document.querySelectorAll(
+          "#ContentFixedSection_uReservaEspacios_uFechaSeleccionar_datetimepicker .day"
+        )
+      );
+      const targetDateElement = dateElements.find(
+        (element) => element.getAttribute("data-day") === "12/07/2024"
+      );
+      if (targetDateElement) {
+        targetDateElement.click();
+      } else {
+        console.error("Date element not found");
+      }
+    });
+
+
+    await page.waitForSelector(
+      "#ContentFixedSection_uReservaEspacios_uFechaSeleccionar_btnContinuar"
+    );
+    await page.click(
+      "#ContentFixedSection_uReservaEspacios_uFechaSeleccionar_btnContinuar"
+    );
+
     
   } catch (error) {
     console.error("Error occurred:", error);
