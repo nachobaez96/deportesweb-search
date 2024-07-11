@@ -1,10 +1,24 @@
 import React, { useState } from 'react';
+import './App.css';
 
 function App() {
     const [sport, setSport] = useState('');
     const [date, setDate] = useState('');
     const [time, setTime] = useState('');
     const [courts, setCourts] = useState([]);
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        const response = await fetch('/api/get-courts', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ username: 'yourUsername', password: 'yourPassword', sport, date, time })
+        });
+        const data = await response.json();
+        setCourts(data);
+    };
 
     return (
         <div>
