@@ -9,16 +9,22 @@ function App() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        const response = await fetch('/api/get-courts', {
+        
+        // Convert date to DD/MM/YYYY format
+        const [year, month, day] = date.split('-');
+        const formattedDate = `"${day}/${month}/${year}"`;
+    
+        const response = await fetch('http://localhost:5000/search', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ username: 'yourUsername', password: 'yourPassword', sport, date, time })
+            body: JSON.stringify({ sport, date: formattedDate, time }),
         });
         const data = await response.json();
-        setCourts(data);
+        setCourts(data.courts);
     };
+
 
     return (
         <div>
@@ -26,7 +32,16 @@ function App() {
             <form onSubmit={handleSubmit}>
                 <label>
                     Sport:
-                    <input type="text" value={sport} onChange={(e) => setSport(e.target.value)} />
+                    <select value={sport} onChange={(e) => setSport(e.target.value)}>
+                        <option value="">Select a sport</option>
+                        <option value="Pista de bádminton">Pista de bádminton</option>
+                        <option value="Frontón">Frontón</option>
+                        <option value="Pista de pádel">Pista de pádel</option>
+                        <option value="Pista de pickleball">Pista de pickleball</option>
+                        <option value="Pista de squash">Pista de squash</option>
+                        <option value="Pista de tenis">Pista de tenis</option>
+                        <option value="Tenis de mesa">Tenis de mesa</option>
+                    </select>
                 </label>
                 <br />
                 <label>
@@ -42,11 +57,11 @@ function App() {
                 <button type="submit">Search</button>
             </form>
             <h2>Available Courts</h2>
-            <ul>
+            {/* <ul>
                 {courts.map((court, index) => (
                     <li key={index}>{court.name} - {court.availability}</li>
                 ))}
-            </ul>
+            </ul> */}
         </div>
     );
 }
