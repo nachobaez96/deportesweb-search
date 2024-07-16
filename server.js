@@ -120,25 +120,27 @@ app.post("/search", async (req, res) => {
       console.log(`Selected usage for sports center ${i}`);
 
       await page.waitForSelector(
-        "#ContentFixedSection_uReservaEspacios_uFechaSeleccionar_datetimepicker .day" // TODO: .day.weekend
+        "#ContentFixedSection_uReservaEspacios_uFechaSeleccionar_datetimepicker"
       );
 
-      console.log(`Selecting date for sports center ${i}: ${date}`);
+      console.log(`Date variable before passing to evaluate: ${date}`);
 
       await page.evaluate((date) => {
-        const dateElements = Array.from(
-          document.querySelectorAll(
-            "#ContentFixedSection_uReservaEspacios_uFechaSeleccionar_datetimepicker .day"
-          )
+        const cleanedDate = date.replace(/['"]+/g, "").trim();
+
+        const calendar = document.getElementById(
+          "ContentFixedSection_uReservaEspacios_uFechaSeleccionar_datetimepicker"
         );
-        console.log("Date Elements:", dateElements);
+        const dateElements = Array.from(calendar.querySelectorAll(".day"));
+
         const targetDateElement = dateElements.find(
-          (element) => element.getAttribute("data-day") === date
+          (element) => element.getAttribute("data-day").trim() === cleanedDate
         );
         if (targetDateElement) {
           targetDateElement.click();
+          console.log(`Clicked on date: ${cleanedDate}`);
         } else {
-          console.error("Date element not found");
+          console.error(`Date element for ${cleanedDate} not found`);
         }
       }, date);
 
@@ -210,7 +212,7 @@ app.post("/search", async (req, res) => {
     console.error("Error occurred:", error);
     res.status(500).json({ error: "Internal Server Error" });
   } finally {
-    await browser.close();
+    // await browser.close();
   }
 });
 
