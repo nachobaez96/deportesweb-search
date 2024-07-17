@@ -6,6 +6,7 @@ function App() {
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
   const [courts, setCourts] = useState([]);
+  const [rawData, setRawData] = useState([]);
   const [loading, setLoading] = useState("");
 
   const handleSubmit = async (e) => {
@@ -47,7 +48,8 @@ function App() {
             const cleanChunk = line.replace(/^data:\s*/, "");
             try {
               const parsedData = JSON.parse(cleanChunk);
-              setCourts(parsedData);
+              setRawData(parsedData);
+              filterCourts(parsedData, time);
             } catch (err) {
               setLoading(cleanChunk);
             }
@@ -60,6 +62,40 @@ function App() {
       console.error("Error occurred:", error);
       setLoading("Error occurred while fetching data");
     }
+  };
+
+  const filterCourts = (data, selectedTime) => {
+    if (!selectedTime) {
+      setCourts(data);
+      return;
+    }
+
+    const [selectedHour, selectedMinute] = selectedTime.split(":");
+    const selectedDateTime = new Date();
+    selectedDateTime.setHours(selectedHour, selectedMinute, 0, 0);
+
+    const startTime = new Date(selectedDateTime);
+    startTime.setMinutes(startTime.getMinutes() - 90);
+
+    const endTime = new Date(selectedDateTime);
+    endTime.setMinutes(endTime.getMinutes() + 90);
+
+    const filteredData = data.map((center) => {
+      const filteredSlots = center.freeSlots.filter((slot) => {
+        const [slotHour, slotMinute] = slot.split(":");
+        const slotDateTime = new Date();
+        slotDateTime.setHours(slotHour, slotMinute, 0, 0);
+        return slotDateTime >= startTime && slotDateTime <= endTime;
+      });
+      return { ...center, freeSlots: filteredSlots };
+    });
+
+    setCourts(filteredData);
+  };
+
+  const handleTimeChange = (e) => {
+    setTime(e.target.value);
+    filterCourts(rawData, e.target.value);
   };
 
   return (
@@ -91,11 +127,7 @@ function App() {
         <br />
         <label>
           Time:
-          <input
-            type="time"
-            value={time}
-            onChange={(e) => setTime(e.target.value)}
-          />
+          <input type="time" value={time} onChange={handleTimeChange} />
         </label>
         <br />
         <button type="submit">Search</button>
