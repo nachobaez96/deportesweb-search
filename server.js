@@ -20,6 +20,8 @@ app.post("/search", async (req, res) => {
   const browser = await puppeteer.launch({ headless: false });
   const page = await browser.newPage();
 
+  res.write(`data: Logging in...\n\n`);
+
   try {
     await page.goto("https://deportesweb.madrid.es/DeportesWeb/login", {
       waitUntil: "networkidle2",
@@ -86,12 +88,14 @@ app.post("/search", async (req, res) => {
       ).length;
     });
 
-    console.log("Number of Sports Centers:", sportsCenterCount);
+    res.write(`data: Number of Sports Centers: ${sportsCenterCount}\n\n`);
 
     const allFreeSlots = [];
 
     for (let i = 1; i <= sportsCenterCount; i++) {
-      console.log(`Processing sports center ${i}`);
+      res.write(
+        `data: Fetching sports center data (${i} of ${sportsCenterCount})\n\n`
+      );
 
       await delay(20);
 
@@ -207,12 +211,16 @@ app.post("/search", async (req, res) => {
       }, "Click back button until it no longer exists");
     }
 
-    // res.json({ courts: allFreeSlots });
+    console.log(JSON.stringify(allFreeSlots));
+
+    res.write(`data: Done!\n\n`);
+    res.write(`data: ${JSON.stringify(allFreeSlots)}\n\n`);
+    res.end();
   } catch (error) {
     console.error("Error occurred:", error);
     res.status(500).json({ error: "Internal Server Error" });
   } finally {
-    // await browser.close();
+    await browser.close();
   }
 });
 
