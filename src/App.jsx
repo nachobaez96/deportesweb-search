@@ -80,18 +80,30 @@ function App() {
     const endTime = new Date(selectedDateTime);
     endTime.setMinutes(endTime.getMinutes() + 90);
 
-    const filteredData = data.map((center) => {
-      const filteredSlots = center.freeSlots.filter((slot) => {
-        const [slotHour, slotMinute] = slot.split(":");
-        const slotDateTime = new Date();
-        slotDateTime.setHours(slotHour, slotMinute, 0, 0);
-        return slotDateTime >= startTime && slotDateTime <= endTime;
+    const filteredData = data.map(center => {
+      const timeSlotCounts = {};
+      center.freeSlots.forEach(slot => {
+          const [slotHour, slotMinute] = slot.split(':');
+          const slotDateTime = new Date();
+          slotDateTime.setHours(slotHour, slotMinute, 0, 0);
+          if (slotDateTime >= startTime && slotDateTime <= endTime) {
+              const timeSlot = `${slotHour}:${slotMinute}`;
+              if (!timeSlotCounts[timeSlot]) {
+                  timeSlotCounts[timeSlot] = 0;
+              }
+              timeSlotCounts[timeSlot]++;
+          }
       });
-      return { ...center, freeSlots: filteredSlots };
-    });
 
-    setCourts(filteredData);
-  };
+      const aggregatedSlots = Object.entries(timeSlotCounts).map(([time, count]) => {
+          return `${time} (x${count})`;
+      });
+
+      return { ...center, freeSlots: aggregatedSlots };
+  });
+
+  setCourts(filteredData);
+};
 
   const handleTimeChange = (e) => {
     setTime(e.target.value);
