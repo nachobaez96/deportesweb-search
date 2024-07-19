@@ -1,5 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import "./App.css";
+import { MapContainer, TileLayer, Marker, Popup, ZoomControl } from "react-leaflet";
+import "leaflet/dist/leaflet.css";
 
 function App() {
   const [sport, setSport] = useState("");
@@ -8,11 +10,23 @@ function App() {
   const [courts, setCourts] = useState([]);
   const [rawData, setRawData] = useState([]);
   const [loading, setLoading] = useState("");
+  const [fadeOut, setFadeOut] = useState(false);
+
+  useEffect(() => {
+    if (loading === "Done!") {
+      setTimeout(() => {
+        setFadeOut(true);
+        setTimeout(() => {
+          setLoading("");
+          setFadeOut(false);
+        }, 3000);
+      }, 500);
+    }
+  }, [loading]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Convert date to DD/MM/YYYY format
     const [year, month, day] = date.split("-");
     const formattedDate = `${day}/${month}/${year}`;
 
@@ -41,7 +55,6 @@ function App() {
         done = readerDone;
         const chunk = decoder.decode(value, { stream: !done });
 
-        // Split and handle SSE data
         const lines = chunk.split("\n");
         lines.forEach((line) => {
           if (line.startsWith("data: ")) {
@@ -74,10 +87,10 @@ function App() {
       selectedDateTime.setHours(selectedHour, selectedMinute, 0, 0);
 
       startTime = new Date(selectedDateTime);
-      startTime.setMinutes(startTime.getMinutes() - 90); // Subtract 90 minutes (1.5 hours)
+      startTime.setMinutes(startTime.getMinutes() - 90);
 
       endTime = new Date(selectedDateTime);
-      endTime.setMinutes(endTime.getMinutes() + 90); // Add 90 minutes (1.5 hours)
+      endTime.setMinutes(endTime.getMinutes() + 90);
     }
 
     const aggregatedData = data.map((center) => {
@@ -109,7 +122,9 @@ function App() {
       return { ...center, freeSlots: aggregatedSlots };
     });
 
-    setCourts(aggregatedData);
+    const filteredData = aggregatedData.filter(center => center.freeSlots.length > 0);
+
+    setCourts(filteredData);
   };
 
   const handleTimeChange = (e) => {
@@ -118,8 +133,12 @@ function App() {
   };
 
   return (
-    <div>
-      <h1>DeportesWeb Madrid Search</h1>
+    <div id="root">
+      {loading && (
+        <p className={`loading-message ${fadeOut ? "fade-out" : ""}`}>
+          {loading}
+        </p>
+      )}
       <form onSubmit={handleSubmit}>
         <label>
           Sport:
@@ -134,7 +153,6 @@ function App() {
             <option value="Tenis de mesa">Tenis de mesa</option>
           </select>
         </label>
-        <br />
         <label>
           Date:
           <input
@@ -143,30 +161,40 @@ function App() {
             onChange={(e) => setDate(e.target.value)}
           />
         </label>
-        <br />
         <label>
           Time:
           <input type="time" value={time} onChange={handleTimeChange} />
         </label>
-        <br />
         <button type="submit">Search</button>
       </form>
-      {loading && <p>{loading}</p>}
-      <h2>Available Courts</h2>
-      <ul>
+      <MapContainer
+        id="map"
+        center={[40.416775, -3.70379]}
+        zoom={12}
+        zoomControl={false}
+      >
+        <TileLayer
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        />
+        <ZoomControl position="bottomright"/>
         {courts.map((court, index) => (
-          <li key={index}>
-            <h3>
-              {court.sportsCenter} - {court.address}
-            </h3>
-            <ul>
-              {court.freeSlots.map((slot, idx) => (
-                <li key={idx}>{slot}</li>
-              ))}
-            </ul>
-          </li>
+          <Marker
+            key={index}
+            position={[court.coordinates.lat, court.coordinates.lon]}
+          >
+            <Popup>
+              <h3>{court.sportsCenter}</h3>
+              <p>{court.address}</p>
+              <ul>
+                {court.freeSlots.map((slot, idx) => (
+                  <li key={idx}>{slot}</li>
+                ))}
+              </ul>
+            </Popup>
+          </Marker>
         ))}
-      </ul>
+      </MapContainer>
     </div>
   );
 }

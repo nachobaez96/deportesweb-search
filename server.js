@@ -3,6 +3,7 @@ import bodyParser from "body-parser";
 import puppeteer from "puppeteer";
 import dotenv from "dotenv";
 import cors from "cors";
+import fetch from "node-fetch";
 
 dotenv.config({ path: "C:/code/deportesweb-madrid-search/.env" });
 
@@ -14,10 +15,25 @@ app.use(bodyParser.json());
 
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+const geocode = async (query) => {
+  const response = await fetch(
+    `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
+      query
+    )}`
+  );
+  const data = await response.json();
+  if (data && data.length > 0) {
+    const { lat, lon } = data[0];
+    return { lat, lon };
+  } else {
+    throw new Error(`Geocoding failed for query: ${query}`);
+  }
+};
+
 app.post("/search", async (req, res) => {
   const { sport, date, time } = req.body;
 
-  const browser = await puppeteer.launch({ headless: false });
+  const browser = await puppeteer.launch({ headless: true });
   const page = await browser.newPage();
 
   res.write(`data: Logging in...\n\n`);
@@ -114,6 +130,21 @@ app.post("/search", async (req, res) => {
         return { name, address };
       }, i);
 
+      // Geocode the address to get coordinates, with fallback to sports center name
+      let coordinates;
+      try {
+        coordinates = await geocode(sportsCenterInfo.address);
+      } catch (error) {
+        console.error(error.message);
+        try {
+          coordinates = await geocode(sportsCenterInfo.name); // something like `polideportivo ${sportsCenterInfo.name} ${sportsCenterInfo.address}`
+        } catch (nameError) {
+          console.error(nameError.message);
+          coordinates = null;
+        }
+      }
+      sportsCenterInfo.coordinates = coordinates;
+
       await performStep(async () => {
         await page.waitForSelector(
           `#ContentFixedSection_uReservaEspacios_uCentrosSeleccionar_divCentros .media-list > .media.pull-left:nth-child(${i})`
@@ -205,6 +236,7 @@ app.post("/search", async (req, res) => {
       allFreeSlots.push({
         sportsCenter: sportsCenterInfo.name,
         address: sportsCenterInfo.address,
+        coordinates: sportsCenterInfo.coordinates,
         freeSlots,
       });
 
