@@ -103,6 +103,17 @@ app.post("/search", async (req, res) => {
         "#ContentFixedSection_uReservaEspacios_uCentrosSeleccionar_divCentros .media-list"
       );
 
+      // Extract the sports center name and address
+      const sportsCenterInfo = await page.evaluate((i) => {
+        const selector = `#ContentFixedSection_uReservaEspacios_uCentrosSeleccionar_divCentros .media-list > .media.pull-left:nth-child(${i})`;
+        const element = document.querySelector(selector);
+        const name = element.querySelector("h4.media-heading").innerText;
+        const address = element.querySelector(
+          "li:first-child span:last-child"
+        ).innerText;
+        return { name, address };
+      }, i);
+
       await performStep(async () => {
         await page.waitForSelector(
           `#ContentFixedSection_uReservaEspacios_uCentrosSeleccionar_divCentros .media-list > .media.pull-left:nth-child(${i})`
@@ -192,7 +203,8 @@ app.post("/search", async (req, res) => {
       console.log(`Free slots for sports center ${i}:`, freeSlots);
 
       allFreeSlots.push({
-        sportsCenter: `Sports Center ${i}`,
+        sportsCenter: sportsCenterInfo.name,
+        address: sportsCenterInfo.address,
         freeSlots,
       });
 
