@@ -65,45 +65,52 @@ function App() {
   };
 
   const filterCourts = (data, selectedTime) => {
-    if (!selectedTime) {
-      setCourts(data);
-      return;
+    let startTime = null;
+    let endTime = null;
+
+    if (selectedTime) {
+      const [selectedHour, selectedMinute] = selectedTime.split(":");
+      const selectedDateTime = new Date();
+      selectedDateTime.setHours(selectedHour, selectedMinute, 0, 0);
+
+      startTime = new Date(selectedDateTime);
+      startTime.setMinutes(startTime.getMinutes() - 90); // Subtract 90 minutes (1.5 hours)
+
+      endTime = new Date(selectedDateTime);
+      endTime.setMinutes(endTime.getMinutes() + 90); // Add 90 minutes (1.5 hours)
     }
 
-    const [selectedHour, selectedMinute] = selectedTime.split(":");
-    const selectedDateTime = new Date();
-    selectedDateTime.setHours(selectedHour, selectedMinute, 0, 0);
-
-    const startTime = new Date(selectedDateTime);
-    startTime.setMinutes(startTime.getMinutes() - 90);
-
-    const endTime = new Date(selectedDateTime);
-    endTime.setMinutes(endTime.getMinutes() + 90);
-
-    const filteredData = data.map(center => {
+    const aggregatedData = data.map((center) => {
       const timeSlotCounts = {};
-      center.freeSlots.forEach(slot => {
-          const [slotHour, slotMinute] = slot.split(':');
-          const slotDateTime = new Date();
-          slotDateTime.setHours(slotHour, slotMinute, 0, 0);
-          if (slotDateTime >= startTime && slotDateTime <= endTime) {
-              const timeSlot = `${slotHour}:${slotMinute}`;
-              if (!timeSlotCounts[timeSlot]) {
-                  timeSlotCounts[timeSlot] = 0;
-              }
-              timeSlotCounts[timeSlot]++;
+
+      center.freeSlots.forEach((slot) => {
+        const [slotHour, slotMinute] = slot.split(":");
+        const slotDateTime = new Date();
+        slotDateTime.setHours(slotHour, slotMinute, 0, 0);
+
+        if (
+          !selectedTime ||
+          (slotDateTime >= startTime && slotDateTime <= endTime)
+        ) {
+          const timeSlot = `${slotHour}:${slotMinute}`;
+          if (!timeSlotCounts[timeSlot]) {
+            timeSlotCounts[timeSlot] = 0;
           }
+          timeSlotCounts[timeSlot]++;
+        }
       });
 
-      const aggregatedSlots = Object.entries(timeSlotCounts).map(([time, count]) => {
+      const aggregatedSlots = Object.entries(timeSlotCounts).map(
+        ([time, count]) => {
           return `${time} (x${count})`;
-      });
+        }
+      );
 
       return { ...center, freeSlots: aggregatedSlots };
-  });
+    });
 
-  setCourts(filteredData);
-};
+    setCourts(aggregatedData);
+  };
 
   const handleTimeChange = (e) => {
     setTime(e.target.value);
@@ -149,7 +156,9 @@ function App() {
       <ul>
         {courts.map((court, index) => (
           <li key={index}>
-            <h3>{court.sportsCenter}</h3>
+            <h3>
+              {court.sportsCenter} - {court.address}
+            </h3>
             <ul>
               {court.freeSlots.map((slot, idx) => (
                 <li key={idx}>{slot}</li>
